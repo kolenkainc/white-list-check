@@ -15,6 +15,20 @@ val propsKeystoreFile = keystoreProps?.getProperty("storeFile")?.trim()?.takeIf 
     ?.let { rootProject.file(it) }
     ?.takeIf { it.exists() }
 
+val (githubOwner, githubRepo) = run {
+    val envFull = System.getenv("GITHUB_REPOSITORY")
+    if (!envFull.isNullOrBlank() && "/" in envFull) {
+        val i = envFull.indexOf("/")
+        Pair(envFull.substring(0, i), envFull.substring(i + 1))
+    } else {
+        val o = (rootProject.findProperty("github.owner") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "YOUR_GITHUB_OWNER"
+        val r = (rootProject.findProperty("github.repo") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "white-list-check"
+        Pair(o, r)
+    }
+}
+
 android {
     namespace = "tech.romashov.whitelistcheck"
     compileSdk = 35
@@ -25,6 +39,8 @@ android {
         targetSdk = 35
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
+        buildConfigField("String", "GITHUB_OWNER", "\"${githubOwner.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "GITHUB_REPO", "\"${githubRepo.replace("\"", "\\\"")}\"")
     }
 
     signingConfigs {
@@ -68,6 +84,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
