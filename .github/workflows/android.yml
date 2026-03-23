@@ -3,8 +3,16 @@ name: Android CI
 on:
   push:
     branches:
-      - "**"
+      - master
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
   pull_request:
+    branches:
+      - master
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
 
 jobs:
@@ -15,9 +23,6 @@ jobs:
       cancel-in-progress: true
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'push' &&
-        github.ref != 'refs/heads/main' &&
-        github.ref != 'refs/heads/master') ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -39,26 +44,29 @@ jobs:
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Point Gradle at the SDK
+        working-directory: android
         run: echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+          build-root-directory: android
 
       - name: Assemble debug APK
+        working-directory: android
         run: gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
   release:
     name: Tag → Build → GitHub Release
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -128,12 +136,14 @@ jobs:
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Point Gradle at the SDK
+        working-directory: android
         run: echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+          build-root-directory: android
 
       - name: Optional release keystore
         env:
@@ -150,9 +160,10 @@ jobs:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        working-directory: android
         run: |
-          if [ -f release-upload.keystore ]; then
-            export RELEASE_KEYSTORE_FILE=release-upload.keystore
+          if [ -f ../release-upload.keystore ]; then
+            export RELEASE_KEYSTORE_FILE=../release-upload.keystore
           fi
           gradle assembleRelease --stacktrace --no-daemon
 
@@ -161,7 +172,7 @@ jobs:
           VERSION_NAME: ${{ steps.bump.outputs.name }}
         run: |
           mkdir -p upload
-          cp "app/build/outputs/apk/release/app-release.apk" \
+          cp "android/app/build/outputs/apk/release/app-release.apk" \
             "upload/white-list-check-${VERSION_NAME}.apk"
 
       - name: Create GitHub Release with APK

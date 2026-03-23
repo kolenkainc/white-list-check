@@ -64,6 +64,7 @@ class MonitoringPrefs(context: Context) {
         private const val KEY_LAST_MSG = "last_msg"
         private const val KEY_LAST_TIME = "last_time"
 
-        const val DEFAULT_URL = "https://romashov.tech/test-ip"
+        /** Полный URL GET «следующий IP», например …/api/v1/next у Cloudflare Worker. */
+        const val DEFAULT_URL = "https://YOUR_WORKER.workers.dev/api/v1/next"
     }
 }

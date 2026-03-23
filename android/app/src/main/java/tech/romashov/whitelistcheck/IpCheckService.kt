@@ -71,24 +71,35 @@ class IpCheckService : Service() {
         httpClient: IpEndpointClient,
         checker: ReachabilityChecker,
     ) {
-        val ipResult = httpClient.fetchAndParseIp(prefs.endpointUrl)
-        ipResult.fold(
-            onSuccess = { ip ->
+        when (val next = httpClient.fetchNextIp(prefs.endpointUrl)) {
+            is FetchNextIpResult.Ok -> {
+                val ip = next.ip
                 val ok = checker.isAnyPortOpen(ip)
                 val msg = if (ok) {
                     getString(R.string.status_reachable, ip)
                 } else {
                     getString(R.string.status_unreachable, ip)
                 }
+                val reportUrl = IpEndpointClient.reportUrlForNextEndpoint(prefs.endpointUrl, ip)
+                if (reportUrl != null) {
+                    httpClient.putReachability(reportUrl, ok).onFailure { err ->
+                        android.util.Log.w(TAG, "report failed: ${err.message}")
+                    }
+                }
                 prefs.recordCheck(ip, ok, msg)
                 updateNotification(msg)
-            },
-            onFailure = { e ->
-                val msg = getString(R.string.status_fetch_error, e.message ?: e.javaClass.simpleName)
+            }
+            FetchNextIpResult.NoPending -> {
+                val msg = getString(R.string.status_no_pending)
                 prefs.recordCheck(null, null, msg)
                 updateNotification(msg)
-            },
-        )
+            }
+            is FetchNextIpResult.Failure -> {
+                val msg = getString(R.string.status_fetch_error, next.message)
+                prefs.recordCheck(null, null, msg)
+                updateNotification(msg)
+            }
+        }
     }
 
     private fun updateNotification(text: String) {
@@ -149,6 +160,7 @@ class IpCheckService : Service() {
 
     companion object {
         const val ACTION_STOP = "tech.romashov.whitelistcheck.STOP"
+        private const val TAG = "IpCheckService"
         private const val CHANNEL_ID = "ip_monitor"
         private const val NOTIFICATION_ID = 42
 

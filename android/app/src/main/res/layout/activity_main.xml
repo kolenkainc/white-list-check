@@ -27,7 +27,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textUri"
-                tools:text="https://romashov.tech/test-ip" />
+                tools:text="https://example.workers.dev/api/v1/next" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
