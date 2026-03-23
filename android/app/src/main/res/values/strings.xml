@@ -5,7 +5,7 @@
     <string name="notif_title">Проверка белого списка</string>
     <string name="notif_starting">Запуск проверки…</string>
     <string name="action_stop">Стоп</string>
-    <string name="label_url">URL эндпоинта</string>
+    <string name="label_url">URL выдачи следующего IP (GET …/api/v1/next)</string>
     <string name="label_interval">Интервал (мин)</string>
     <string name="label_timeout">Таймаут сети (сек)</string>
     <string name="button_start">Начать мониторинг</string>
@@ -24,6 +24,7 @@
     <string name="status_reachable">%1$s отвечает (TCP)</string>
     <string name="status_unreachable">%1$s не отвечает (TCP 443/80/22)</string>
     <string name="status_fetch_error">Ошибка запроса: %1$s</string>
+    <string name="status_no_pending">Нет IP в очереди (все проверены или список пуст)</string>
     <string name="toast_started">Мониторинг запущен</string>
     <string name="toast_stopped">Мониторинг остановлен</string>
     <string name="toast_notify_denied">Без уведомлений фоновый режим может быть ограничен</string>

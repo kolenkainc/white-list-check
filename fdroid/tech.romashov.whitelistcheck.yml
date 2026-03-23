@@ -21,8 +21,8 @@ Description: |
   RECEIVE_BOOT_COMPLETED when resuming monitoring.
 
 MaintainerNotes: |
-  versionCode/versionName are taken from env VERSION_CODE and VERSION_NAME (see app/build.gradle.kts).
-  Each Builds entry must export matching values in init before Gradle.
+  versionCode/versionName are taken from env VERSION_CODE and VERSION_NAME (see android/app/build.gradle.kts).
+  Each Builds entry must export matching values in init before Gradle. Gradle project root is subdirectory android/.
 
   After the first upstream release tag exists, set commit to that tag and align versionName,
   versionCode, and init exports with the tag (versionCode = MAJOR*1000000 + MINOR*1000 + PATCH).
@@ -38,6 +38,7 @@ Builds:
   - versionName: 1.0.0
     versionCode: 1000000
     commit: v1.0.0
+    subdir: android
     init:
       - export VERSION_CODE=1000000
       - export VERSION_NAME=1.0.0

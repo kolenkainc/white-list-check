@@ -1,9 +1,15 @@
-/.gradle/
-/build/
-**/build/
-local.properties
-keystore.properties
+# Android (android/)
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+android/keystore.properties
 *.jks
 *.keystore
 *.iml
 .idea/
+
+# Cloudflare Worker (worker/)
+worker/node_modules/
+worker/.wrangler/
+worker/dist/
