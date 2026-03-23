@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Проверка IP</string>
+    <string name="channel_name">Мониторинг доступности IP</string>
+    <string name="notif_title">Проверка белого списка</string>
+    <string name="notif_starting">Запуск проверки…</string>
+    <string name="action_stop">Стоп</string>
+    <string name="label_url">URL эндпоинта</string>
+    <string name="label_interval">Интервал (мин)</string>
+    <string name="label_timeout">Таймаут сети (сек)</string>
+    <string name="button_start">Начать мониторинг</string>
+    <string name="button_stop">Остановить</string>
+    <string name="button_refresh">Обновить статус</string>
+    <string name="section_status">Последняя проверка</string>
+    <string name="status_monitoring_on">Мониторинг: включён</string>
+    <string name="status_monitoring_off">Мониторинг: выключен</string>
+    <string name="status_never">ещё не было</string>
+    <string name="reachable_yes">доступен</string>
+    <string name="reachable_no">недоступен</string>
+    <string name="label_last_time">Время</string>
+    <string name="label_last_ip">IP из эндпоинта</string>
+    <string name="label_last_reachable">Доступность (TCP)</string>
+    <string name="label_last_message">Сообщение</string>
+    <string name="status_reachable">%1$s отвечает (TCP)</string>
+    <string name="status_unreachable">%1$s не отвечает (TCP 443/80/22)</string>
+    <string name="status_fetch_error">Ошибка запроса: %1$s</string>
+    <string name="toast_started">Мониторинг запущен</string>
+    <string name="toast_stopped">Мониторинг остановлен</string>
+    <string name="toast_notify_denied">Без уведомлений фоновый режим может быть ограничен</string>
+</resources>
