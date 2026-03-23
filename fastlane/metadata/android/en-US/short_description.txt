@@ -1,0 +1,1 @@
+Checks if an IP from your HTTPS endpoint answers on common TCP ports

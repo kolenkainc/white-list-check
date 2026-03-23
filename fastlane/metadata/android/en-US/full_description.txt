@@ -1,0 +1,5 @@
+The app downloads a response from a configurable HTTPS URL, extracts an IPv4 address (from JSON keys like "ip" or from plain text), then checks TCP reachability on ports 443, 80, and 22.
+
+Monitoring runs in a foreground service (persistent notification). You can set the check interval, timeouts, and optionally resume after boot.
+
+Network permission is used only to call your endpoint and perform the reachability probe. Replace the default URL in settings if you host your own API.
