@@ -1,0 +1,7 @@
+## Подготовка к публикации в F-Droid
+
+- Добавлен **Apache-2.0** (`LICENSE`).
+- Добавлен черновик метаданных F-Droid: `fdroid/tech.romashov.whitelistcheck.yml` (перед MR в [fdroiddata](https://gitlab.com/fdroid/fdroiddata) заменить `YOUR_GITHUB_USER/YOUR_REPO_NAME` и выровнять `commit`/версии под первый тег `v*.*.*`).
+- Добавлены описания для каталога: `fastlane/metadata/android/`.
+
+Следующий шаг после мержа: **Merge Request в GitLab** в репозиторий fdroiddata — см. `fdroid/README.md`.

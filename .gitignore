@@ -1,3 +1,7 @@
+# Legacy / accidental root Gradle output (project root is android/)
+/.gradle/
+/build/
+
 # Android (android/)
 android/.gradle/
 android/build/

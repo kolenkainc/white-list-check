@@ -171,5 +171,33 @@
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             tools:text="1.2.3.4 отвечает (TCP)" />
+
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/section_updates"
+            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+        <TextView
+            android:id="@+id/textAppVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="1.0.0 (1)" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonCheckUpdate"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/button_check_update" />
     </LinearLayout>
 </ScrollView>

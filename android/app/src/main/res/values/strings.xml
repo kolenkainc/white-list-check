@@ -28,4 +28,20 @@
     <string name="toast_started">Мониторинг запущен</string>
     <string name="toast_stopped">Мониторинг остановлен</string>
     <string name="toast_notify_denied">Без уведомлений фоновый режим может быть ограничен</string>
+    <string name="section_updates">Обновление с GitHub</string>
+    <string name="label_current_version">Текущая версия: %1$s (%2$d)</string>
+    <string name="button_check_update">Проверить обновления</string>
+    <string name="update_checking">Проверка…</string>
+    <string name="update_downloading">Загрузка…</string>
+    <string name="update_latest">У вас последняя версия</string>
+    <string name="update_available_title">Доступно обновление</string>
+    <string name="update_available_message">Новая версия: %1$s\nУстановлена: %2$s</string>
+    <string name="update_download">Скачать и установить</string>
+    <string name="update_error">Ошибка обновления: %1$s</string>
+    <string name="update_configure_repo">Задайте github.owner и github.repo в gradle.properties (см. документацию в репозитории)</string>
+    <string name="update_need_install_permission">Нужно разрешение на установку из этого приложения</string>
+    <string name="update_open_settings">Настройки</string>
+    <string name="update_bytes">%1$s байт</string>
+    <string name="update_download_progress_known">Загружено: %1$s из %2$s</string>
+    <string name="update_download_progress_unknown">Загружено: %1$s</string>
 </resources>
