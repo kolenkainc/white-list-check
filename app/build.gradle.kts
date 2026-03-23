@@ -1,7 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+val releaseKeystorePath = System.getenv("RELEASE_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+val releaseKeystoreFile = releaseKeystorePath?.let { rootProject.file(it) }?.takeIf { it.exists() }
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = keystorePropsFile.takeIf { it.exists() }?.reader()?.use {
+    Properties().apply { load(it) }
+}
+val propsKeystoreFile = keystoreProps?.getProperty("storeFile")?.trim()?.takeIf { it.isNotEmpty() }
+    ?.let { rootProject.file(it) }
+    ?.takeIf { it.exists() }
 
 android {
     namespace = "tech.romashov.whitelistcheck"
@@ -11,8 +23,29 @@ android {
         applicationId = "tech.romashov.whitelistcheck"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
+    }
+
+    signingConfigs {
+        when {
+            releaseKeystoreFile != null -> {
+                create("releaseUpload") {
+                    storeFile = releaseKeystoreFile
+                    storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                    keyAlias = System.getenv("RELEASE_KEY_ALIAS").orEmpty()
+                    keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                }
+            }
+            keystoreProps != null && propsKeystoreFile != null -> {
+                create("releaseUpload") {
+                    storeFile = propsKeystoreFile
+                    storePassword = keystoreProps.getProperty("storePassword")
+                    keyAlias = keystoreProps.getProperty("keyAlias").orEmpty()
+                    keyPassword = keystoreProps.getProperty("keyPassword")
+                }
+            }
+        }
     }
 
     buildTypes {
@@ -22,6 +55,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.findByName("releaseUpload")
+                ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {

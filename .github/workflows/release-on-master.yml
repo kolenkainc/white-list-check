@@ -1,0 +1,116 @@
+name: Release on master
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  tag-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Next SemVer tag and version metadata
+        id: bump
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          LATEST="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1 || true)"
+          if [ -z "${LATEST}" ]; then
+            TAG="v1.0.0"
+          else
+            VER="${LATEST#v}"
+            MA="${VER%%.*}"
+            REST="${VER#*.}"
+            MI="${REST%%.*}"
+            PA="${REST#*.}"
+            PA=$((PA + 1))
+            TAG="v${MA}.${MI}.${PA}"
+          fi
+          while git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; do
+            VER="${TAG#v}"
+            MA="${VER%%.*}"
+            REST="${VER#*.}"
+            MI="${REST%%.*}"
+            PA="${REST#*.}"
+            PA=$((PA + 1))
+            TAG="v${MA}.${MI}.${PA}"
+          done
+          NAME="${TAG#v}"
+          CODE=$((MA * 1000000 + MI * 1000 + PA))
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "name=${NAME}" >> "${GITHUB_OUTPUT}"
+          echo "code=${CODE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK components
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Point Gradle at the SDK
+        run: echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Optional release keystore
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "${RELEASE_KEYSTORE_B64:-}" ]; then
+            echo "${RELEASE_KEYSTORE_B64}" | base64 -d > "${GITHUB_WORKSPACE}/release-upload.keystore"
+          fi
+
+      - name: Assemble release APK
+        env:
+          VERSION_NAME: ${{ steps.bump.outputs.name }}
+          VERSION_CODE: ${{ steps.bump.outputs.code }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -f release-upload.keystore ]; then
+            export RELEASE_KEYSTORE_FILE=release-upload.keystore
+          fi
+          gradle assembleRelease --stacktrace --no-daemon
+
+      - name: Prepare release asset
+        env:
+          VERSION_NAME: ${{ steps.bump.outputs.name }}
+        run: |
+          mkdir -p upload
+          cp "app/build/outputs/apk/release/app-release.apk" \
+            "upload/white-list-check-${VERSION_NAME}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.tag }}
+          name: ${{ steps.bump.outputs.tag }}
+          files: upload/white-list-check-${{ steps.bump.outputs.name }}.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
