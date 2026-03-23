@@ -2,7 +2,6 @@ package tech.romashov.whitelistcheck
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -64,7 +63,8 @@ object GithubReleaseUpdate {
             val a = assets.optJSONObject(i) ?: continue
             val name = a.optString("name")
             if (!name.endsWith(".apk", ignoreCase = true)) continue
-            val download = a.optString("browser_download_url").ifBlank { continue }
+            val download = a.optString("browser_download_url")
+            if (download.isBlank()) continue
             if (name.startsWith("white-list-check-", ignoreCase = true) || bestUrl == null) {
                 bestUrl = download
                 bestName = name
