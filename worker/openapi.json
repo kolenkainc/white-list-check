@@ -1,0 +1,135 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "White list IP registry API",
+    "version": "0.1.0",
+    "description": "Очередь IPv4 для проверки с мобильного интернета: выдача следующего pending-адреса и фиксация результата в Cloudflare D1."
+  },
+  "servers": [{ "url": "/", "description": "Текущий Worker" }],
+  "paths": {
+    "/api/v1/next": {
+      "get": {
+        "summary": "Следующий непроверенный IP",
+        "operationId": "getNextIp",
+        "responses": {
+          "200": {
+            "description": "Есть pending — в теле ip; если очередь пуста — ip: null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ip"],
+                  "properties": {
+                    "ip": { "type": ["string", "null"], "example": "203.0.113.10" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ips": {
+      "post": {
+        "summary": "Добавить IP в очередь (pending)",
+        "operationId": "ingestIp",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer-токен, если задан секрет INGEST_TOKEN"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ip"],
+                "properties": { "ip": { "type": "string", "example": "198.51.100.1" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Создан или уже существовал",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ip": { "type": "string" },
+                    "status": { "type": "string", "enum": ["pending", "reachable", "unreachable"] }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Неверный токен" },
+          "400": { "description": "Некорректный JSON или IPv4" }
+        }
+      }
+    },
+    "/api/v1/ips/{ip}": {
+      "put": {
+        "summary": "Обновить доступность IP после проверки клиентом",
+        "operationId": "putIpStatus",
+        "parameters": [
+          {
+            "name": "ip",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reachable"],
+                "properties": { "reachable": { "type": "boolean" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Обновлено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ip": { "type": "string" },
+                    "status": { "type": "string", "enum": ["reachable", "unreachable"] },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "IP не найден в реестре" },
+          "400": { "description": "Некорректное тело" }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "OpenAPI спецификация",
+        "operationId": "getOpenApi",
+        "responses": {
+          "200": {
+            "description": "JSON OpenAPI",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    }
+  }
+}
