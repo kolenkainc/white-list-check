@@ -357,6 +357,15 @@ app.openapi(putIpRoute, async (c) => {
   }
 });
 
+const ROBOTS_TXT_DENY_ALL = "User-agent: *\nDisallow: /\n";
+
+app.get("/robots.txt", (c) =>
+  c.text(ROBOTS_TXT_DENY_ALL, 200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "public, max-age=86400",
+  }),
+);
+
 app.get("/", (c) =>
   c.json({
     service: "white-list-check-api",
