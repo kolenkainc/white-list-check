@@ -1,2 +1,5 @@
 ## Copy to local.properties and set your Android SDK path (Android Studio installs it by default).
 sdk.dir=/home/YOU/Android/Sdk
+
+## Optional: override Sentry DSN (otherwise uses sentry.dsn from gradle.properties or SENTRY_DSN env)
+# sentry.dsn=https://YOUR_KEY@YOUR_ORG.ingest.sentry.io/PROJECT_ID
