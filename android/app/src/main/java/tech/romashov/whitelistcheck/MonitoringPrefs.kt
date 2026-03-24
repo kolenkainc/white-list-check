@@ -9,6 +9,16 @@ class MonitoringPrefs(context: Context) {
         get() = p.getBoolean(KEY_ENABLED, false)
         set(value) = p.edit().putBoolean(KEY_ENABLED, value).apply()
 
+    /** Автозапуск мониторинга ежедневно 00:00–01:00 UTC (будильники). */
+    var scheduledUtcWindowEnabled: Boolean
+        get() = p.getBoolean(KEY_SCHEDULED_UTC, true)
+        set(value) = p.edit().putBoolean(KEY_SCHEDULED_UTC, value).apply()
+
+    /** Текущая сессия запущена расписанием (не ручным «Старт»). */
+    var monitoringFromSchedule: Boolean
+        get() = p.getBoolean(KEY_FROM_SCHEDULE, false)
+        set(value) = p.edit().putBoolean(KEY_FROM_SCHEDULE, value).apply()
+
     var endpointUrl: String
         get() = p.getString(KEY_URL, DEFAULT_URL) ?: DEFAULT_URL
         set(value) = p.edit().putString(KEY_URL, value).apply()
@@ -56,6 +66,8 @@ class MonitoringPrefs(context: Context) {
     companion object {
         private const val PREFS = "monitoring"
         private const val KEY_ENABLED = "enabled"
+        private const val KEY_SCHEDULED_UTC = "scheduled_utc_window"
+        private const val KEY_FROM_SCHEDULE = "monitoring_from_schedule"
         private const val KEY_URL = "url"
         private const val KEY_INTERVAL = "interval_min"
         private const val KEY_TIMEOUT = "timeout_sec"

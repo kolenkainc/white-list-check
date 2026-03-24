@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 class IpCheckService : Service() {
 
@@ -28,7 +29,9 @@ class IpCheckService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            MonitoringPrefs(this).monitoringEnabled = false
+            val p = MonitoringPrefs(this)
+            p.monitoringEnabled = false
+            p.monitoringFromSchedule = false
             monitorJob?.cancel()
             monitorJob = null
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -54,6 +57,14 @@ class IpCheckService : Service() {
             val checker = ReachabilityChecker(prefs.connectTimeoutSeconds * 1000)
 
             while (isActive && prefs.monitoringEnabled) {
+                if (prefs.monitoringFromSchedule &&
+                    !UtcWindowScheduler.isInsideUtcWindow(Instant.now())
+                ) {
+                    prefs.monitoringEnabled = false
+                    prefs.monitoringFromSchedule = false
+                    UtcWindowScheduler.scheduleNextWindow(this@IpCheckService)
+                    break
+                }
                 runSingleCheck(prefs, httpClient, checker)
                 delay(intervalMs)
             }

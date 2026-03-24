@@ -53,10 +53,12 @@ class MainActivity : AppCompatActivity() {
 
         loadFormFromPrefs()
         refreshAppVersionLabel()
+        UtcWindowScheduler.scheduleNextWindow(this)
 
         binding.buttonStart.setOnClickListener {
             saveFormToPrefs()
             val prefs = MonitoringPrefs(this)
+            prefs.monitoringFromSchedule = false
             prefs.monitoringEnabled = true
             IpCheckService.start(this)
             refreshStatus()
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.buttonStop.setOnClickListener {
             val prefs = MonitoringPrefs(this)
+            prefs.monitoringFromSchedule = false
             prefs.monitoringEnabled = false
             startService(Intent(this, IpCheckService::class.java).setAction(IpCheckService.ACTION_STOP))
             refreshStatus()
@@ -80,6 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        UtcWindowScheduler.scheduleNextWindow(this)
         refreshStatus()
     }
 
@@ -96,6 +100,12 @@ class MainActivity : AppCompatActivity() {
         binding.inputUrl.setText(prefs.endpointUrl)
         binding.inputInterval.setText(prefs.intervalMinutes.toString())
         binding.inputTimeout.setText(prefs.connectTimeoutSeconds.toString())
+        binding.switchScheduledUtc.setOnCheckedChangeListener(null)
+        binding.switchScheduledUtc.isChecked = prefs.scheduledUtcWindowEnabled
+        binding.switchScheduledUtc.setOnCheckedChangeListener { _, checked ->
+            MonitoringPrefs(this).scheduledUtcWindowEnabled = checked
+            UtcWindowScheduler.scheduleNextWindow(this)
+        }
     }
 
     private fun saveFormToPrefs() {
