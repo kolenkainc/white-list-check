@@ -79,6 +79,29 @@ const IpPathParamsSchema = z.object({
 
 type AppContext = Context<{ Bindings: Bindings }>;
 
+const LOG_PREFIX = "[white-list-check-api]";
+
+function logInfo(message: string, data?: Record<string, unknown>) {
+  if (data !== undefined) {
+    console.log(LOG_PREFIX, message, JSON.stringify(data));
+  } else {
+    console.log(LOG_PREFIX, message);
+  }
+}
+
+function logWarn(message: string, data?: Record<string, unknown>) {
+  if (data !== undefined) {
+    console.warn(LOG_PREFIX, message, JSON.stringify(data));
+  } else {
+    console.warn(LOG_PREFIX, message);
+  }
+}
+
+function logError(message: string, err: unknown) {
+  const detail = err instanceof Error ? err.message : String(err);
+  console.error(LOG_PREFIX, message, detail);
+}
+
 function checkIngestAuth(c: AppContext): boolean {
   const token = c.env.INGEST_TOKEN;
   if (!token) return true;
@@ -119,6 +142,22 @@ app.use(
   }),
 );
 
+app.use("*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  const start = Date.now();
+  try {
+    await next();
+  } finally {
+    const ms = Date.now() - start;
+    logInfo("request", {
+      method: c.req.method,
+      path,
+      status: c.res.status,
+      ms,
+    });
+  }
+});
+
 const getNextRoute = createRoute({
   method: "get",
   path: "/api/v1/next",
@@ -142,8 +181,11 @@ app.openapi(getNextRoute, async (c) => {
     const row = await c.env.DB.prepare(
       `SELECT ip FROM ip_checks WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
     ).first<{ ip: string }>();
-    return c.json({ ip: row?.ip ?? null }, 200);
+    const ip = row?.ip ?? null;
+    logInfo("next_ip", { ip, empty: ip === null });
+    return c.json({ ip }, 200);
   } catch (e) {
+    logError("next_ip_failed", e);
     return c.json({ error: String(e) }, 500);
   }
 });
@@ -200,12 +242,13 @@ const enqueueRoutes = [postIpsRoute, postCheckQueueRoute] as const;
 for (const route of enqueueRoutes) {
   app.openapi(route, async (c) => {
     if (!checkIngestAuth(c)) {
+      logWarn("enqueue_unauthorized", { path: new URL(c.req.url).pathname });
       return c.json({ error: "unauthorized" }, 401);
     }
     const { ip } = c.req.valid("json");
     const now = new Date().toISOString();
     try {
-      await c.env.DB.prepare(
+      const insertResult = await c.env.DB.prepare(
         `INSERT OR IGNORE INTO ip_checks (ip, status, created_at, updated_at) VALUES (?, 'pending', ?, ?)`,
       )
         .bind(ip, now, now)
@@ -216,8 +259,16 @@ for (const route of enqueueRoutes) {
         .first<{ status: string }>();
 
       const status = (row?.status as IpStatus) ?? "pending";
+      const inserted = (insertResult.meta?.changes ?? 0) > 0;
+      logInfo("enqueue", {
+        ip,
+        inserted,
+        status,
+        path: new URL(c.req.url).pathname,
+      });
       return c.json({ ip, status }, 201);
     } catch (e) {
+      logError("enqueue_failed", e);
       return c.json({ error: String(e) }, 500);
     }
   });
@@ -268,10 +319,13 @@ app.openapi(putIpRoute, async (c) => {
 
     const changes = result.meta?.changes ?? 0;
     if (changes === 0) {
+      logWarn("put_status_not_found", { ip });
       return c.json({ error: "not_found" }, 404);
     }
+    logInfo("put_status", { ip, status, updatedAt });
     return c.json({ ip, status, updatedAt }, 200);
   } catch (e) {
+    logError("put_status_failed", e);
     return c.json({ error: String(e) }, 500);
   }
 });
@@ -298,7 +352,10 @@ app.doc31("/openapi.json", {
   servers: [{ url: "/", description: "Текущий Worker" }],
 });
 
-app.notFound((c) => c.json({ error: "not_found" }, 404));
+app.notFound((c) => {
+  logWarn("not_found", { path: new URL(c.req.url).pathname });
+  return c.json({ error: "not_found" }, 404);
+});
 
 export default app;
 

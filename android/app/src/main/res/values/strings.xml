@@ -10,6 +10,7 @@
     <string name="label_timeout">Таймаут сети (сек)</string>
     <string name="button_start">Начать мониторинг</string>
     <string name="button_stop">Остановить</string>
+    <string name="label_scheduled_utc">Авто 00:00–01:00 UTC ежедневно</string>
     <string name="button_refresh">Обновить статус</string>
     <string name="section_status">Последняя проверка</string>
     <string name="status_monitoring_on">Мониторинг: включён</string>

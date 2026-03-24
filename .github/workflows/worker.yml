@@ -3,6 +3,9 @@ name: Worker CI/CD
 # Секреты репозитория: CLOUDFLARE_API_TOKEN (Workers + D1), CLOUDFLARE_ACCOUNT_ID.
 # Токен: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/
 # (шаблон «Edit Cloudflare Workers» + право на D1 для аккаунта)
+#
+# Опционально: переменная репозитория WORKER_DEPLOY_URL — публичный URL воркера
+# (появится ссылка в GitHub → Deployments). Например https://white-list-check-api.example.com
 
 on:
   push:
@@ -54,12 +57,17 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
     concurrency:
       group: worker-cf-deploy
       cancel-in-progress: false
     defaults:
       run:
         working-directory: worker
+    env:
+      WORKER_DEPLOY_URL: ${{ vars.WORKER_DEPLOY_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,6 +76,30 @@ jobs:
           cache: npm
           cache-dependency-path: worker/package-lock.json
       - run: npm ci
+      - name: Create GitHub deployment
+        id: gh_deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'cloudflare-worker',
+              description: 'Cloudflare Worker (wrangler deploy)',
+              auto_merge: false,
+              required_contexts: [],
+            });
+            const id = deployment.data.id;
+            core.setOutput('deployment_id', String(id));
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: id,
+              state: 'in_progress',
+              log_url: logUrl,
+            });
       - name: Apply D1 migrations (remote)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -78,3 +110,34 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy
+      - name: GitHub deployment — success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const id = parseInt('${{ steps.gh_deployment.outputs.deployment_id }}', 10);
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: id,
+              state: 'success',
+              log_url: logUrl,
+            };
+            const url = (process.env.WORKER_DEPLOY_URL || '').trim();
+            if (url) body.environment_url = url;
+            await github.rest.repos.createDeploymentStatus(body);
+      - name: GitHub deployment — failure
+        if: failure() && steps.gh_deployment.outputs.deployment_id != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const id = parseInt('${{ steps.gh_deployment.outputs.deployment_id }}', 10);
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: id,
+              state: 'failure',
+              log_url: logUrl,
+            });

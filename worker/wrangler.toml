@@ -2,6 +2,13 @@ name = "white-list-check-api"
 main = "src/index.ts"
 compatibility_date = "2025-03-01"
 
+# Кастомный домен (прод): https://white-list-check-api.romashov.tech
+# Зона romashov.tech должна быть в том же аккаунте Cloudflare, что и Worker.
+# Только hostname: для custom_domain нельзя /*, пути и wildcard — иначе Invalid Routes.
+[[routes]]
+pattern = "white-list-check-api.romashov.tech"
+custom_domain = true
+
 # Workers Logs: дашборд → Worker → Observability
 # https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 [observability]
