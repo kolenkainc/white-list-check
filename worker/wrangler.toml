@@ -2,6 +2,13 @@ name = "white-list-check-api"
 main = "src/index.ts"
 compatibility_date = "2025-03-01"
 
+# Workers Logs: дашборд → Worker → Observability
+# https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+[observability]
+enabled = true
+# 1.0 = все запросы; при высоком трафике уменьшите (например 0.1 = 10%)
+head_sampling_rate = 1
+
 [[d1_databases]]
 binding = "DB"
 database_name = "white-list-check"
