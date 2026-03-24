@@ -103,7 +103,14 @@ class MainActivity : AppCompatActivity() {
         binding.switchScheduledUtc.setOnCheckedChangeListener(null)
         binding.switchScheduledUtc.isChecked = prefs.scheduledUtcWindowEnabled
         binding.switchScheduledUtc.setOnCheckedChangeListener { _, checked ->
-            MonitoringPrefs(this).scheduledUtcWindowEnabled = checked
+            val p = MonitoringPrefs(this)
+            p.scheduledUtcWindowEnabled = checked
+            if (!checked && p.monitoringFromSchedule && p.monitoringEnabled) {
+                p.monitoringEnabled = false
+                p.monitoringFromSchedule = false
+                startService(Intent(this, IpCheckService::class.java).setAction(IpCheckService.ACTION_STOP))
+                refreshStatus()
+            }
             UtcWindowScheduler.scheduleNextWindow(this)
         }
     }
