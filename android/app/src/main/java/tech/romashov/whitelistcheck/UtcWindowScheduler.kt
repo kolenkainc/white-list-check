@@ -1,5 +1,6 @@
 package tech.romashov.whitelistcheck
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -52,6 +53,13 @@ object UtcWindowScheduler {
         am.cancel(pending(context, RC_STOP, ACTION_SCHEDULED_STOP))
     }
 
+    /** Android 12+ (особенно 13+): точные будильники только с разрешением / ручным доступом. */
+    fun canScheduleExactAlarms(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        return am.canScheduleExactAlarms()
+    }
+
     /**
      * Ставит будильники на ближайший старт (00:00 UTC) и стоп (01:00 UTC того же дня).
      * Вызывать после загрузки, смены настройки и из приёмника.
@@ -66,17 +74,22 @@ object UtcWindowScheduler {
 
         upcomingStopInCurrentWindow(now)?.let { stopAt ->
             if (stopAt.isAfter(now)) {
-                setAlarmClock(am, context, stopAt.toEpochMilli(), RC_STOP, ACTION_SCHEDULED_STOP)
+                setExactOrWindowAlarm(am, context, stopAt.toEpochMilli(), RC_STOP, ACTION_SCHEDULED_STOP)
             }
         }
 
         val startAt = nextUtcMidnightAfter(now)
         if (startAt.isAfter(now)) {
-            setAlarmClock(am, context, startAt.toEpochMilli(), RC_START, ACTION_SCHEDULED_START)
+            setExactOrWindowAlarm(am, context, startAt.toEpochMilli(), RC_START, ACTION_SCHEDULED_START)
         }
     }
 
-    private fun setAlarmClock(
+    /**
+     * [AlarmManager.setAlarmClock] — точное время и иконка «будильника» в статус-баре.
+     * Без [android.Manifest.permission.SCHEDULE_EXACT_ALARM] (частый случай на Android 13+) — [AlarmManager.setWindow].
+     */
+    @SuppressLint("ScheduleExactAlarm")
+    private fun setExactOrWindowAlarm(
         am: AlarmManager,
         context: Context,
         triggerMillis: Long,
@@ -84,16 +97,26 @@ object UtcWindowScheduler {
         action: String,
     ) {
         val operation = pending(context, requestCode, action)
-        val show = PendingIntent.getActivity(
-            context,
-            requestCode + 100,
-            Intent(context, MainActivity::class.java),
-            pendingFlags(),
-        )
-        am.setAlarmClock(
-            AlarmManager.AlarmClockInfo(triggerMillis, show),
-            operation,
-        )
+        val useExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
+        if (useExact) {
+            try {
+                val show = PendingIntent.getActivity(
+                    context,
+                    requestCode + 100,
+                    Intent(context, MainActivity::class.java),
+                    pendingFlags(),
+                )
+                am.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerMillis, show),
+                    operation,
+                )
+                return
+            } catch (_: SecurityException) {
+                // редкие OEM / политики
+            }
+        }
+        val windowMs = 10 * 60_000L
+        am.setWindow(AlarmManager.RTC_WAKEUP, triggerMillis, windowMs, operation)
     }
 
     private fun pending(context: Context, requestCode: Int, action: String): PendingIntent {
