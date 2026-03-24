@@ -65,6 +65,6 @@ class MonitoringPrefs(context: Context) {
         private const val KEY_LAST_TIME = "last_time"
 
         /** Полный URL GET «следующий IP», например …/api/v1/next у Cloudflare Worker. */
-        const val DEFAULT_URL = "https://YOUR_WORKER.workers.dev/api/v1/next"
+        const val DEFAULT_URL = "https://white-list-check-api.romashov.tech/api/v1/next"
     }
 }
