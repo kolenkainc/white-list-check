@@ -167,6 +167,19 @@ jobs:
           fi
           gradle assembleRelease --stacktrace --no-daemon
 
+      # Тот же идентификатор, что BuildConfig.SENTRY_RELEASE (app/build.gradle.kts → sentryRelease).
+      - name: Sentry release + коммиты (ссылки на GitHub в стектрейсах)
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: kolenka-inc
+          SENTRY_PROJECT: whitelistcheck-android
+        with:
+          environment: production
+          version: tech.romashov.whitelistcheck@${{ steps.bump.outputs.name }}+${{ steps.bump.outputs.code }}
+          set_commits: auto
+
       - name: Prepare release asset
         env:
           VERSION_NAME: ${{ steps.bump.outputs.name }}

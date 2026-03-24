@@ -24,6 +24,12 @@ val sentryDsn = System.getenv("SENTRY_DSN")?.trim()?.takeIf { it.isNotEmpty() }
     ?: (rootProject.findProperty("sentry.dsn") as String?)?.trim()?.takeIf { it.isNotEmpty() }
     ?: ""
 
+val appApplicationId = "tech.romashov.whitelistcheck"
+val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+val appVersionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
+/** Должен совпадать с version в шаге Sentry в .github/workflows/android.yml */
+val sentryRelease = "$appApplicationId@$appVersionName+$appVersionCode"
+
 val (githubOwner, githubRepo) = run {
     val envFull = System.getenv("GITHUB_REPOSITORY")
     if (!envFull.isNullOrBlank() && "/" in envFull) {
@@ -43,14 +49,19 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "tech.romashov.whitelistcheck"
+        applicationId = appApplicationId
         minSdk = 26
         targetSdk = 35
-        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         buildConfigField("String", "GITHUB_OWNER", "\"${githubOwner.replace("\"", "\\\"")}\"")
         buildConfigField("String", "GITHUB_REPO", "\"${githubRepo.replace("\"", "\\\"")}\"")
         buildConfigField("String", "SENTRY_DSN", "\"${sentryDsn.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+        buildConfigField(
+            "String",
+            "SENTRY_RELEASE",
+            "\"${sentryRelease.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
     }
 
     signingConfigs {
