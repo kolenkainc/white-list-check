@@ -53,6 +53,7 @@ class IpCheckService : Service() {
             val httpClient = IpEndpointClient(
                 connectTimeoutSec = prefs.connectTimeoutSeconds,
                 readTimeoutSec = prefs.connectTimeoutSeconds,
+                ingestToken = BuildConfig.INGEST_TOKEN,
             )
             val checker = ReachabilityChecker(prefs.connectTimeoutSeconds * 1000)
 

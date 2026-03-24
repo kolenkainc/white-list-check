@@ -18,6 +18,7 @@ sealed class FetchNextIpResult {
 class IpEndpointClient(
     connectTimeoutSec: Int,
     readTimeoutSec: Int,
+    private val ingestToken: String = "",
 ) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(connectTimeoutSec.toLong(), TimeUnit.SECONDS)
@@ -65,6 +66,7 @@ class IpEndpointClient(
         val request = Request.Builder()
             .url(url)
             .put(body)
+            .apply { addIngestAuthIfSet() }
             .header("Content-Type", "application/json; charset=utf-8")
             .header("Accept", "application/json")
             .header("User-Agent", "WhiteListCheck/1.0 (Android)")
@@ -76,6 +78,12 @@ class IpEndpointClient(
                 }
             }
         }
+    }
+
+    private fun Request.Builder.addIngestAuthIfSet(): Request.Builder {
+        val t = ingestToken.trim()
+        if (t.isNotEmpty()) header("Authorization", "Bearer $t")
+        return this
     }
 
     private sealed class Parsed {

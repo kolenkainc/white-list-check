@@ -5,9 +5,15 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
 
+/** Секрет из Account Secrets Store (`secrets_store_secrets` в wrangler). */
+type SecretsStoreBinding = { get(): Promise<string> };
+
 export type Bindings = {
   DB: D1Database;
+  /** Локально / без Secrets Store: `wrangler secret put INGEST_TOKEN` или `.dev.vars`. */
   INGEST_TOKEN?: string;
+  /** Прод: привязка к секрету в Cloudflare Secrets Store (см. wrangler.toml). */
+  INGEST_TOKEN_SECRET?: SecretsStoreBinding;
 };
 
 type IpStatus = "pending" | "reachable" | "unreachable";
@@ -102,8 +108,19 @@ function logError(message: string, err: unknown) {
   console.error(LOG_PREFIX, message, detail);
 }
 
-function checkIngestAuth(c: AppContext): boolean {
-  const token = c.env.INGEST_TOKEN;
+async function resolveIngestToken(c: AppContext): Promise<string | undefined> {
+  const fromStore = c.env.INGEST_TOKEN_SECRET;
+  if (fromStore) {
+    const v = await fromStore.get();
+    if (typeof v === "string" && v.length > 0) return v;
+  }
+  const plain = c.env.INGEST_TOKEN;
+  if (typeof plain === "string" && plain.length > 0) return plain;
+  return undefined;
+}
+
+async function checkIngestAuth(c: AppContext): Promise<boolean> {
+  const token = await resolveIngestToken(c);
   if (!token) return true;
   const auth = c.req.header("Authorization") ?? "";
   return auth === `Bearer ${token}`;
@@ -129,7 +146,8 @@ const app = new OpenAPIHono<{ Bindings: Bindings }>({
 app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
   type: "http",
   scheme: "bearer",
-  description: "Если задан секрет INGEST_TOKEN на Worker, передайте `Authorization: Bearer <токен>`",
+  description:
+    "Если задан INGEST_TOKEN (wrangler secret / Secrets Store), передайте `Authorization: Bearer <токен>` на защищённые методы",
 });
 
 app.use(
@@ -241,7 +259,7 @@ const postCheckQueueRoute = createRoute({
 const enqueueRoutes = [postIpsRoute, postCheckQueueRoute] as const;
 for (const route of enqueueRoutes) {
   app.openapi(route, async (c) => {
-    if (!checkIngestAuth(c)) {
+    if (!(await checkIngestAuth(c))) {
       logWarn("enqueue_unauthorized", { path: new URL(c.req.url).pathname });
       return c.json({ error: "unauthorized" }, 401);
     }
@@ -280,6 +298,7 @@ const putIpRoute = createRoute({
   tags: ["queue"],
   summary: "Записать результат проверки IP",
   description: "Обновляет `reachable` / `unreachable` для существующей строки.",
+  security: [{ BearerAuth: [] }],
   request: {
     params: IpPathParamsSchema,
     body: {
@@ -300,6 +319,10 @@ const putIpRoute = createRoute({
       description: "IP не найден",
       content: { "application/json": { schema: ErrorSchema } },
     },
+    401: {
+      description: "Неверный или отсутствующий Bearer при заданном INGEST_TOKEN",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
     500: {
       description: "Ошибка D1",
       content: { "application/json": { schema: ErrorSchema } },
@@ -308,6 +331,10 @@ const putIpRoute = createRoute({
 });
 
 app.openapi(putIpRoute, async (c) => {
+  if (!(await checkIngestAuth(c))) {
+    logWarn("put_status_unauthorized", { path: new URL(c.req.url).pathname });
+    return c.json({ error: "unauthorized" }, 401);
+  }
   const { ip } = c.req.valid("param");
   const { reachable } = c.req.valid("json");
   const status: IpStatus = reachable ? "reachable" : "unreachable";
@@ -329,6 +356,15 @@ app.openapi(putIpRoute, async (c) => {
     return c.json({ error: String(e) }, 500);
   }
 });
+
+const ROBOTS_TXT_DENY_ALL = "User-agent: *\nDisallow: /\n";
+
+app.get("/robots.txt", (c) =>
+  c.text(ROBOTS_TXT_DENY_ALL, 200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "public, max-age=86400",
+  }),
+);
 
 app.get("/", (c) =>
   c.json({

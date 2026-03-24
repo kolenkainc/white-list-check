@@ -24,4 +24,11 @@ database_id = "99e66877-4477-4835-b256-0c134a8cf8ac"
 # Локально: npx wrangler d1 migrations apply white-list-check --local
 # Прод:   npx wrangler d1 migrations apply white-list-check --remote
 
-# Опционально: wrangler secret put INGEST_TOKEN — тогда POST /api/v1/ips требует Authorization: Bearer …
+# INGEST_TOKEN (один и тот же смысл для API и Android):
+# • Cloudflare Secrets Store (аккаунт): создайте секрет с именем INGEST_TOKEN, затем привязка:
+[[secrets_store_secrets]]
+binding = "INGEST_TOKEN_SECRET"
+store_id = "a05a6df8d9f84d06b0876b71b77a3aa0"
+secret_name = "INGEST_TOKEN"
+# • Или без Store: wrangler secret put INGEST_TOKEN
+# Значение после сохранения в Store через API не читается — для сборки APK продублируйте его в GitHub Secret INGEST_TOKEN.

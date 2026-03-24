@@ -1,6 +1,7 @@
 name: Worker CI/CD
 
 # Секреты репозитория: CLOUDFLARE_API_TOKEN (Workers + D1), CLOUDFLARE_ACCOUNT_ID.
+# INGEST_TOKEN: в Worker через Secrets Store или `wrangler secret put`; для Android CI см. android.yml.
 # Токен: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/
 # (шаблон «Edit Cloudflare Workers» + право на D1 для аккаунта)
 #
