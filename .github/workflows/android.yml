@@ -1,5 +1,9 @@
 name: Android CI
 
+# INGEST_TOKEN: тот же bearer, что на Worker (Cloudflare Secrets Store или wrangler secret).
+# API Cloudflare не отдаёт значение секрета после создания — при настройке один раз продублируйте
+# его в GitHub → Settings → Secrets → Actions → INGEST_TOKEN (для вшивания в BuildConfig на CI).
+
 on:
   push:
     branches:
@@ -54,6 +58,8 @@ jobs:
           build-root-directory: android
 
       - name: Assemble debug APK
+        env:
+          INGEST_TOKEN: ${{ secrets.INGEST_TOKEN }}
         working-directory: android
         run: gradle assembleDebug --stacktrace --no-daemon
 
@@ -157,6 +163,7 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.bump.outputs.name }}
           VERSION_CODE: ${{ steps.bump.outputs.code }}
+          INGEST_TOKEN: ${{ secrets.INGEST_TOKEN }}
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}

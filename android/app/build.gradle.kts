@@ -24,6 +24,11 @@ val sentryDsn = System.getenv("SENTRY_DSN")?.trim()?.takeIf { it.isNotEmpty() }
     ?: (rootProject.findProperty("sentry.dsn") as String?)?.trim()?.takeIf { it.isNotEmpty() }
     ?: ""
 
+val ingestToken = System.getenv("INGEST_TOKEN")?.trim()?.takeIf { it.isNotEmpty() }
+    ?: localPropsForSentry?.getProperty("ingest.token")?.trim()?.takeIf { it.isNotEmpty() }
+    ?: (rootProject.findProperty("ingest.token") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+    ?: ""
+
 val appApplicationId = "tech.romashov.whitelistcheck"
 val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
 val appVersionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
@@ -61,6 +66,11 @@ android {
             "String",
             "SENTRY_RELEASE",
             "\"${sentryRelease.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
+        buildConfigField(
+            "String",
+            "INGEST_TOKEN",
+            "\"${ingestToken.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
     }
 
