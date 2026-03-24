@@ -169,7 +169,6 @@ jobs:
 
       # Тот же идентификатор, что BuildConfig.SENTRY_RELEASE (app/build.gradle.kts → sentryRelease).
       - name: Sentry release + коммиты (ссылки на GitHub в стектрейсах)
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
