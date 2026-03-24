@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("io.sentry.android.gradle")
 }
 
 val releaseKeystorePath = System.getenv("RELEASE_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
@@ -14,6 +15,14 @@ val keystoreProps = keystorePropsFile.takeIf { it.exists() }?.reader()?.use {
 val propsKeystoreFile = keystoreProps?.getProperty("storeFile")?.trim()?.takeIf { it.isNotEmpty() }
     ?.let { rootProject.file(it) }
     ?.takeIf { it.exists() }
+
+val localPropsForSentry = rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use {
+    Properties().apply { load(it) }
+}
+val sentryDsn = System.getenv("SENTRY_DSN")?.trim()?.takeIf { it.isNotEmpty() }
+    ?: localPropsForSentry?.getProperty("sentry.dsn")?.trim()?.takeIf { it.isNotEmpty() }
+    ?: (rootProject.findProperty("sentry.dsn") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+    ?: ""
 
 val (githubOwner, githubRepo) = run {
     val envFull = System.getenv("GITHUB_REPOSITORY")
@@ -41,6 +50,7 @@ android {
         versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.0"
         buildConfigField("String", "GITHUB_OWNER", "\"${githubOwner.replace("\"", "\\\"")}\"")
         buildConfigField("String", "GITHUB_REPO", "\"${githubRepo.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "SENTRY_DSN", "\"${sentryDsn.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     signingConfigs {
@@ -85,6 +95,12 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+}
+
+sentry {
+    autoInstallation {
+        sentryVersion.set("7.22.4")
     }
 }
 
