@@ -11,6 +11,7 @@ class WhiteListCheckApplication : Application() {
         if (dsn.isBlank()) return
         SentryAndroid.init(this) { options ->
             options.dsn = dsn
+            options.release = BuildConfig.SENTRY_RELEASE
             options.environment = if (BuildConfig.DEBUG) "debug" else "production"
             options.isDebug = BuildConfig.DEBUG
         }
